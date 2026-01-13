@@ -1,0 +1,53 @@
+{
+  "name": "cep-crawler-api",
+  "version": "1.0.0",
+  "description": "API assíncrona para processamento de CEPs com fila e MongoDB",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "worker": "node src/worker.js",
+    "dev": "node --watch src/server.js",
+    "dev:worker": "node --watch src/worker.js",
+    "ui:dev": "vite --config vite.ui.config.js",
+    "ui:build": "vite build --config vite.ui.config.js",
+    "ui:preview": "vite preview --port 5173 --strictPort --config vite.ui.config.js",
+    "dev:all": "concurrently \"npm run dev\" \"npm run dev:worker\" \"npm run ui:dev\"",
+    "test": "vitest"
+  },
+  "keywords": [
+    "cep",
+    "crawler",
+    "async",
+    "queue",
+    "mongodb"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@aws-sdk/client-sqs": "^3.490.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "lucide-react": "^0.562.0",
+    "mongoose": "^8.0.3",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "uuid": "^9.0.1",
+    "vite": "^5.3.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/forms": "^0.5.7",
+    "@types/node": "^20.10.6",
+    "@types/react": "^18.2.45",
+    "@types/react-dom": "^18.2.18",
+    "@vitejs/plugin-react": "^4.0.0",
+    "autoprefixer": "^10.4.16",
+    "concurrently": "^8.2.0",
+    "nodemon": "^3.0.2",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.3.3",
+    "vitest": "^1.0.0"
+  }
+}

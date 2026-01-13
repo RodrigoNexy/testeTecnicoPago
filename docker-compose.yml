@@ -1,0 +1,96 @@
+services:
+  # MongoDB
+  mongodb:
+    image: mongo:7
+    container_name: cep-crawler-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=cep_crawler
+    networks:
+      - cep-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/cep_crawler --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ElasticMQ (SQS compatível)
+  elasticmq:
+    image: softwaremill/elasticmq-native:latest
+    container_name: cep-crawler-elasticmq
+    ports:
+      - "9324:9324"
+      - "9325:9325"
+    networks:
+      - cep-network
+
+  # API HTTP
+  api:
+    build: .
+    container_name: cep-crawler-api
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - MONGODB_URI=mongodb://mongodb:27017/cep_crawler
+      - AWS_REGION=us-east-1
+      - AWS_ENDPOINT=http://elasticmq:9324
+      - SQS_QUEUE_URL=http://elasticmq:9324/queue/cep-queue
+      - RATE_LIMIT_RPS=10
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      elasticmq:
+        condition: service_started
+    networks:
+      - cep-network
+    command: node src/server.js
+    restart: unless-stopped
+
+  # Inicializador de fila (executa uma vez e sai)
+  queue-init:
+    build: .
+    container_name: cep-crawler-queue-init
+    environment:
+      - AWS_REGION=us-east-1
+      - AWS_ENDPOINT=http://elasticmq:9324
+      - SQS_QUEUE_URL=http://elasticmq:9324/queue/cep-queue
+    depends_on:
+      elasticmq:
+        condition: service_started
+    networks:
+      - cep-network
+    command: sh -c "sleep 5 && node scripts/init-queue.js"
+    restart: "no"
+
+  # Worker assíncrono
+  worker:
+    build: .
+    container_name: cep-crawler-worker
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/cep_crawler
+      - AWS_REGION=us-east-1
+      - AWS_ENDPOINT=http://elasticmq:9324
+      - SQS_QUEUE_URL=http://elasticmq:9324/queue/cep-queue
+      - RATE_LIMIT_RPS=10
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      elasticmq:
+        condition: service_started
+      api:
+        condition: service_started
+    networks:
+      - cep-network
+    command: node src/worker.js
+    restart: unless-stopped
+
+networks:
+  cep-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
